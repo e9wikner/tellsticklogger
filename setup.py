@@ -5,6 +5,7 @@ setup(
     version='0.1',
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    package_data={'tellsticklogger': ['*.ini']},
     install_requires=['click>=6.6', 'Flask>=0.11.1', 'tellcore-py>=1.1.3', 'plotly>=1.12.12'],
     author='Stefan Wikner',
     author_email='stefan.wikner@gmail.com',
