@@ -1,0 +1,6 @@
+1. Install the telldus-core http://telldus.se/produkt/tellstick-duo/.
+2. pip install .
+
+For developers:
+1. same as above
+2. pip install . -e -r requirements_developer.txt
