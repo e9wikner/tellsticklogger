@@ -94,8 +94,8 @@ def sensor_event_to_database(protocol, model, id_, datatype, value, timestamp, c
 
 
 @click.command()
-@click.argument('sqlite3_path', help='Path to the database')
 @click.option('--verbose', is_flag=True, help='Increase program verbosity')
+@click.argument('sqlite3_path')
 def cli(sqlite3_path, verbose):
     if verbose:
         configfile = VERBOSE_LOGFILE
