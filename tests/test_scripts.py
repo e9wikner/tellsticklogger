@@ -3,7 +3,7 @@ import subprocess
 import pytest
 
 
-@pytest.mark.parametrize('script', ['tellstick_sensor_monitor', 'tellstick_db_to_plotly'])
+@pytest.mark.parametrize('script', ['tellstick_logger', 'tellstick_db_to_plotly'])
 def test_command_tellstick_sensor_monitor(script):
     '''
     Test that

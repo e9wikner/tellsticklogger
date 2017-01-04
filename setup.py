@@ -11,7 +11,7 @@ setup(
     description='Logging package for Tellstick Duo',
     entry_points='''
         [console_scripts]
-        tellstick_sensor_monitor=tellsticklogger.core:cli
+        tellstick_logger=tellsticklogger.core:cli
         tellstick_db_to_plotly=tellsticklogger.scripts.tellstick_db_to_plotly:cli
     '''
 )
