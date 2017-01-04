@@ -111,7 +111,10 @@ def cli(sqlite3_path, verbose):
     dispatcher = AsyncioCallbackDispatcher(loop)
     core = TelldusCore(callback_dispatcher=dispatcher)
 
-    init_db(database=os.path.abspath(sqlite3_path), sensors=core.sensors())
+    global DATABASE
+    DATABASE = os.path.abspath(sqlite3_path)
+    
+    init_db(core.sensors())
     callback_id = core.register_sensor_event(sensor_event_to_database)
 
     try:
