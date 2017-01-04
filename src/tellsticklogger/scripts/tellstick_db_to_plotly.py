@@ -25,7 +25,7 @@ def rows_to_xy(rows):
     return x, y
 
 @click.command(help='Update logged temperature and humidity Plotly plots')
-@click.option('--database', help='Path to sensor database')
+@click.argument('database')
 @click.option('--browse', is_flag=True, help='Open browser and show plots')
 def cli(database, browse):
 
