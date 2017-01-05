@@ -121,9 +121,9 @@ def cli(database, browse):
     scatter_fuktighet = [Scattergl(x=points.x, y=points.y, name=name)
                          for name, points in sensor_location_to_humidities.items()]
 
-    tempplot = plot(scatter_temperatur, filename='templog i lägenheten',
+    tempplot = plot(scatter_temperatur, filename='templog i lägenheten - medel',
                     fileopt='overwrite', auto_open=browse)
-    fuktplot = plot(scatter_fuktighet, filename='fuktlog i lägenheten',
+    fuktplot = plot(scatter_fuktighet, filename='fuktlog i lägenheten - medel',
                     fileopt='overwrite', auto_open=browse)
 
     print(tempplot, fuktplot)
