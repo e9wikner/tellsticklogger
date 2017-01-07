@@ -73,15 +73,15 @@ def cli(database, browse):
     DB_CONNECTION.row_factory = sqlite3.Row
 
     sensor_location_to_humidity_rows = {
-        'bokhylla': fetch_sensor_rows('sensor_180', tellcore.constants.TELLSTICK_HUMIDITY),
-        'badrum': fetch_sensor_rows('sensor_226', tellcore.constants.TELLSTICK_HUMIDITY),
-        'balkong': fetch_sensor_rows('sensor_248', tellcore.constants.TELLSTICK_HUMIDITY)
+        'vind': fetch_sensor_rows('sensor_180', tellcore.constants.TELLSTICK_HUMIDITY),
+        'grund': fetch_sensor_rows('sensor_226', tellcore.constants.TELLSTICK_HUMIDITY),
+        'utomhus': fetch_sensor_rows('sensor_248', tellcore.constants.TELLSTICK_HUMIDITY)
     }
 
     sensor_location_to_temperature_rows = {
-        'bokhylla': fetch_sensor_rows('sensor_180', tellcore.constants.TELLSTICK_TEMPERATURE),
-        'badrum': fetch_sensor_rows('sensor_226', tellcore.constants.TELLSTICK_TEMPERATURE),
-        'balkong': fetch_sensor_rows('sensor_248', tellcore.constants.TELLSTICK_TEMPERATURE)
+        'vind': fetch_sensor_rows('sensor_180', tellcore.constants.TELLSTICK_TEMPERATURE),
+        'grund': fetch_sensor_rows('sensor_226', tellcore.constants.TELLSTICK_TEMPERATURE),
+        'utomhus': fetch_sensor_rows('sensor_248', tellcore.constants.TELLSTICK_TEMPERATURE)
     }
 
     sensor_location_to_hourly_mean_humidity_points = {
@@ -121,9 +121,9 @@ def cli(database, browse):
     scatter_fuktighet = [Scattergl(x=points.x, y=points.y, name=name)
                          for name, points in sensor_location_to_humidities.items()]
 
-    tempplot = plot(scatter_temperatur, filename='templog i lägenheten - medel',
+    tempplot = plot(scatter_temperatur, filename='templog i huset - medel',
                     fileopt='overwrite', auto_open=browse)
-    fuktplot = plot(scatter_fuktighet, filename='fuktlog i lägenheten - medel',
+    fuktplot = plot(scatter_fuktighet, filename='fuktlog i huset - medel',
                     fileopt='overwrite', auto_open=browse)
 
     print(tempplot, fuktplot)
