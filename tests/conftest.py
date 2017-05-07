@@ -1,12 +1,16 @@
 import os
 import shutil
+import sys
 import tempfile
 
 import pytest
 
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+PACKAGEDIR = os.path.abspath(os.path.join(BASEDIR, '..', 'src'))
+sys.path.insert(0, PACKAGEDIR)
+
 import tellsticklogger
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 @pytest.fixture(scope='session', autouse=True)
 def tempdir():

@@ -2,7 +2,10 @@ import subprocess
 
 import pytest
 
+import pip
+is_installed = 'tellsticklogger' in pip.get_installed_distributions().__str__()
 
+@pytest.mark.skipif(not is_installed, reason='Install to run skript test')
 @pytest.mark.parametrize('script', ['tellstick_logger', 'tellstick_db_to_plotly'])
 def test_command_tellstick_sensor_monitor(script):
     '''
