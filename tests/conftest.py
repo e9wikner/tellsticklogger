@@ -11,6 +11,10 @@ sys.path.insert(0, PACKAGEDIR)
 
 import tellsticklogger
 
+@pytest.fixture
+def csvpath():
+    return BASEDIR
+
 
 @pytest.fixture(scope='session', autouse=True)
 def tempdir():

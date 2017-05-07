@@ -1,15 +1,15 @@
 #!usr/bin/env python
-import atexit
+import csv
 import logging, logging.config
 import os
-import sqlite3
+from collections import namedtuple
 
 import asyncio
 import click
 from tellcore.telldus import TelldusCore, AsyncioCallbackDispatcher
 from tellcore import constants
 
-__all__ = ['constants', 'DATABASE', 'list_sensors', 'get_last_sensor_reading', 'set_sensor_location']
+__all__ = ['constants', 'list_sensors', 'get_sensor_readings', 'set_sensor_location']
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -17,6 +17,7 @@ logger.addHandler(logging.NullHandler())
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 DEFAULT_LOGFILE = os.path.join(BASEDIR, 'logging_config.ini')
 VERBOSE_LOGFILE = os.path.join(BASEDIR, 'logging_config_verbose.ini')
+CSVPATH = '.'
 
 constants.TELLSTICK_SENSOR_VALUE_TYPES = {
     1: 'TEMPERATURE',
@@ -27,76 +28,31 @@ constants.TELLSTICK_SENSOR_VALUE_TYPES = {
     32: 'WINDAVERAGE',
     64: 'WINDGUST'}
 
-DATABASE = os.path.join(BASEDIR, 'tellsticklogger.db')
-database_connection = None
+
+def csvfilename(id_, model, protocol, datatype):
+    ''' Get filename of csv for id_'''
+    datatype_str = constants.TELLSTICK_SENSOR_VALUE_TYPES[datatype]
+    return '_'.join((datatype_str, protocol, model, str(id_))).lower() + '.csv'
 
 
-def get_database_connection():
-    """ Opens up a connection to the tellsticklogger database.
-    """
-    global database_connection
+def csvfile_to_config(filename):
+    ''' Convert the filename back to the configuration '''
+    filename = filename.rstrip('.csv')
+    datatype_str, protocol, model, id_ = filename.split('_')
+    return {'datatype': datatype_str, 'protocol': protocol, 'model': model, 'id': id_}
 
-    if database_connection is None:
-        logger.debug('connecting to {}'.format(DATABASE))
-        database_connection = sqlite3.connect(DATABASE)
-        database_connection.row_factory = sqlite3.Row  # To access columns by name instead of index
-        atexit.register(close_database_connection)
-
-    return database_connection
-
-
-def close_database_connection():
-    if database_connection is not None:
-        database_connection.close()
-        logger.debug('{} connection closed'.format(DATABASE))
-
-
-def init_db(sensors):
-
-    connection = get_database_connection()
-
-    with connection:
-        currenttables = set(row[0] for row in connection.execute(
-            "select name from sqlite_master where type='table'").fetchall())
-
-        sensors = set(sensors)
-        sensortables = set('sensor_{}'.format(sensor.id) for sensor in sensors)
-
-        if 'sensors' not in currenttables:
-            connection.execute('create table sensors (id integer unique,  '
-                               'protocol text, model text, type integer)')
-            logger.info("created table sensors")
-
-        sensorids_current = set(row[0] for row in connection.execute(
-            "select id from sensors").fetchall())
-        logger.info('Current sensors: {}'.format(sensorids_current))
-
-        for s in sensors:
-            if s.id not in sensorids_current:
-                connection.execute("insert into 'sensors' values (?,?,?,?)",
-                                      (s.id, s.protocol, s.model, s.datatypes))
-                logger.info('added {} to sensors'.format(s.id))
-
-        for table in sensortables - currenttables:
-            connection.execute('create table {} '.format(table) +
-                                  '(timestamp integer, value real, type integer)')
-            logger.info("created table " + table)
-
-
-def sensor_event_to_database(protocol, model, id_, datatype, value, timestamp, cid):
-
-    table = 'sensor_{}'.format(id_)
-    with get_database_connection() as connection:
-        connection.execute(
-            'insert into ' + table + ' (timestamp, value, type) values (?,?,?)',
-            (timestamp, value, datatype))
-        logger.debug('({},{},{}) -> {}'.format(timestamp, value, datatype, table))
+def log_sensorevent(protocol, model, sensor_id, datatype, value, timestamp, cid):
+    filename = os.path.join(CSVPATH, csvfilename(sensor_id, model, protocol, datatype))
+    with open(filename, mode='a') as f:
+        to_write = '{};{}'.format(timestamp, value)
+        f.write(to_write)
+        logger.debug('{} -> {}'.format(to_write, filename))
 
 
 @click.command()
 @click.option('--verbose', is_flag=True, help='Increase program verbosity')
-@click.argument('sqlite3_path')
-def cli(sqlite3_path, verbose):
+@click.argument('csvpath')
+def cli(csv_path, verbose):
     if verbose:
         configfile = VERBOSE_LOGFILE
     else:
@@ -111,37 +67,45 @@ def cli(sqlite3_path, verbose):
     dispatcher = AsyncioCallbackDispatcher(loop)
     core = TelldusCore(callback_dispatcher=dispatcher)
 
-    global DATABASE
-    DATABASE = os.path.abspath(sqlite3_path)
-
-    init_db(core.sensors())
-    callback_id = core.register_sensor_event(sensor_event_to_database)
+    global CSVPATH
+    CSVPATH = csvpath
+    callback_id = core.register_sensor_event(log_sensorevent)
 
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        logger.info('events saved to {}'.format(sqlite3_path))
+        logger.info('events saved to {}'.format(csv_path))
     finally:
         core.unregister_callback(callback_id)
 
 
-def get_last_sensor_reading(sensor_id, valuetype):
-    with get_database_connection() as connection:
-        lastrow = connection.execute(
-            "select * from sensor_{} where type=? order by timestamp desc limit 1"
-            .format(sensor_id), str(valuetype)).fetchall()[-1]
+def get_sensor_readings(csvpath, sensor_id, valuetype, protocol, model):
+    """ Return timestamps, values """
 
-    return {lastrow['timestamp']: lastrow['value']}
+    filename = csvfilename(sensor_id, model, protocol, valuetype)
+    with open(os.path.join(csvpath, filename)) as csvfile:
+        csvreader = csv.reader(csvfile)
+        timestamps, values = [], []
+        for row in csvreader:
+            if len(row) != 2:
+                logger.error('Could not read ' + ', '.join(row))
+            else:
+                timestamps.append(float(row[0]))
+                values.append(float(row[1]))
+
+    return timestamps, values
 
 
-def list_sensors():
+def list_sensors(csvpath):
 
-    with get_database_connection() as connection:
-        sensors_rows = connection.execute("select * from sensors").fetchall()
-    logger.info('fetched {} sensors from sensors table'.format(len(sensors_rows)))
+    files = [f for f in os.path.listdir(csvpath) if f.endswith('.csv')]
+    logger.info('found files: {}'.format(', '.join(files)))
 
-    sensors = [dict(row) for row in sensors_rows]
-    for sensor in sensors:
+    sensors = []
+    for f in files:
+        sensor = csvfilename_to_dict(f)
+        with open(f) as sensorfile:
+            lines = f.readlines()
 
         value_types = {k: constants.TELLSTICK_SENSOR_VALUE_TYPES[k]
                        for k in constants.TELLSTICK_SENSOR_VALUE_TYPES

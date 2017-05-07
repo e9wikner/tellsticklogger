@@ -1,28 +1,20 @@
-import os
-import sqlite3
+import pytest
 
 import tellsticklogger
 
 
-def test_database_connection():
-    assert os.path.exists(tellsticklogger.core.DATABASE)
-    connection = tellsticklogger.core.get_database_connection()
-    assert isinstance(connection, sqlite3.Connection)
-
-
-def test_last_sensor_reading():
-    reading = tellsticklogger.get_last_sensor_reading(248, 1)
-    timestamp = list(reading.keys())[0]
-    value = reading[timestamp]
-    assert value == '4.8'
+def test_sensor_readings(csvpath):
+    timestamps, values = tellsticklogger.get_sensor_readings(csvpath, 180, 1, '1a2d', 'oregon')
+    assert values[-1] == 50
 
 
 def test_list_sensors(sensors):
     sensors_id = [s['id'] for s in sensors]
     sensors_id.sort()
-    assert sensors_id == [135, 180, 226, 248]
+    assert sensors_id == [180,]
 
 
+@pytest.mark.skip
 def test_set_sensor_location(sensors):
     sensor = sensors[0]
     current_location = sensor['location']
