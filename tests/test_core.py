@@ -4,14 +4,13 @@ import tellsticklogger
 
 
 def test_sensor_readings(csvpath):
-    timestamps, values = tellsticklogger.get_sensor_readings(csvpath, 180, 1, '1a2d', 'oregon')
-    assert values[-1] == 50
+    timestamps, values = tellsticklogger.get_sensor_readings(csvpath, 226, 2, 'oregon', '1a2d')
+    assert values == [79, 79, 79]
 
 
 def test_list_sensors(sensors):
-    sensors_id = [s['id'] for s in sensors]
-    sensors_id.sort()
-    assert sensors_id == [180,]
+    sensors_id = sorted(list(set(s['id'] for s in sensors)))
+    assert sensors_id == [89, 226, 240, 254]
 
 
 @pytest.mark.skip
