@@ -41,6 +41,7 @@ def csvfile_to_config(filename):
     datatype_str, protocol, model, id_ = filename.split('_')
     return {'datatype': datatype_str, 'protocol': protocol, 'model': model, 'id': id_}
 
+
 def log_sensorevent(protocol, model, sensor_id, datatype, value, timestamp, cid):
     filename = os.path.join(CSVPATH, csvfilename(sensor_id, model, protocol, datatype))
     with open(filename, mode='a') as f:
@@ -51,8 +52,12 @@ def log_sensorevent(protocol, model, sensor_id, datatype, value, timestamp, cid)
 
 @click.command()
 @click.option('--verbose', is_flag=True, help='Increase program verbosity')
-@click.argument('csvpath')
-def cli(csv_path, verbose):
+@click.argument('--csvpath', help='Log to csv files here', default='.')
+def cli(csvpath, verbose):
+    start_logger(csvpath, verbose)
+
+
+def start_logger(csvpath='.', verbose=False):
     if verbose:
         configfile = VERBOSE_LOGFILE
     else:
@@ -74,7 +79,7 @@ def cli(csv_path, verbose):
     try:
         loop.run_forever()
     except KeyboardInterrupt:
-        logger.info('events saved to {}'.format(csv_path))
+        logger.info('events saved to {}'.format(csvpath))
     finally:
         core.unregister_callback(callback_id)
 
