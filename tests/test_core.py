@@ -13,17 +13,28 @@ def test_list_sensors(sensors):
     assert sensors_id == [89, 226, 240, 254]
 
 
-@pytest.mark.skip
-def test_set_sensor_location(sensors):
-    sensor = sensors[0]
-    current_location = sensor['location']
-    sensor_id = sensor['id']
+def test_get_sensors_location_error(empty_csvpath):
+    with pytest.raises(tellsticklogger.LocationNotSetError) as excinfo:
+        tellsticklogger.get_sensors_location(empty_csvpath)
 
+    assert 'not been set' in str(excinfo.value)
+
+
+def test_get_sensor_location_error(csvpath):
+
+    with pytest.raises(tellsticklogger.LocationNotSetError) as excinfo:
+        tellsticklogger.get_sensor_location(181, csvpath)
+
+    assert 'sensor 181' in str(excinfo.value)
+
+
+def test_get_sensor_location(csvpath):
+    location = tellsticklogger.get_sensor_location(226, csvpath)
+    assert location == 'grund'
+
+
+def test_set_sensor_location(sensors, csvpath):
     test_location = 'qwerty'
-    sensor['location'] = test_location
-    tellsticklogger.set_sensor_location(sensor)
-
-    sensor = [s for s in tellsticklogger.list_sensors()
-              if s['id'] == sensor_id][0]
-
-    assert sensor['location'] == test_location
+    sensor = {'id': 226, 'location': test_location}
+    tellsticklogger.set_sensor_location(sensor, csvpath)
+    assert sensor['location'] == tellsticklogger.get_sensor_location(226, csvpath) 

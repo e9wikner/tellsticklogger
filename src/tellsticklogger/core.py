@@ -1,5 +1,6 @@
 #!usr/bin/env python
 import csv
+import json
 import logging, logging.config
 import os
 from collections import namedtuple
@@ -9,7 +10,8 @@ import click
 from tellcore.telldus import TelldusCore, AsyncioCallbackDispatcher
 from tellcore import constants
 
-__all__ = ['constants', 'list_sensors', 'get_sensor_readings', 'set_sensor_location']
+__all__ = ['constants', 'list_sensors', 'get_sensor_readings',
+           'get_sensor_location', 'get_sensors_location', 'set_sensor_location', 'LocationNotSetError']
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -36,6 +38,10 @@ constants.TELLSTICK_SENSOR_TYPE_VALUES = {
     'WINDDIRECTION': 16,
     'WINDAVERAGE': 32,
     'WINDGUST': 64}
+
+
+class LocationNotSetError(Exception):
+    pass
 
 
 def csvfilename(id_, model, protocol, datatype):
@@ -86,6 +92,7 @@ def start_logger(csvpath='.', verbose=False):
     callback_id = core.register_sensor_event(log_sensorevent)
 
     try:
+        logger.info('waiting for event')
         loop.run_forever()
     except KeyboardInterrupt:
         logger.info('events saved to {}'.format(csvpath))
@@ -113,6 +120,39 @@ def get_sensor_readings(csvpath, sensor_id, valuetype, protocol, model):
     return timestamps, values
 
 
+def sensor_locationfile(csvpath):
+    locationfile = os.path.join(csvpath, 'locations.json')
+    logger.debug('locationfile: ' + locationfile)
+    return locationfile
+
+
+def get_sensors_location(csvpath):
+    try:
+        with open(sensor_locationfile(csvpath)) as fileobject:
+            locations = json.load(fileobject)
+    except FileNotFoundError:
+        raise LocationNotSetError('Locations has not been set yet.')
+    else:
+        return locations
+
+def get_sensor_location(sensor_id, csvpath):
+    sensor_id = str(sensor_id)  # Just in case an int was given
+    locations = get_sensors_location(csvpath)
+    if sensor_id not in locations:
+        raise LocationNotSetError('No location for sensor {} is set'.format(sensor_id))
+
+    return locations[sensor_id]
+
+
+def set_sensor_location(sensordict, csvpath):
+    with open(sensor_locationfile(csvpath), mode='r') as fileobject:
+        locations = json.load(fileobject)
+
+    locations[sensordict['id']] = sensordict['location']
+    with open(sensor_locationfile(csvpath), mode='w') as fileobject:
+        json.dump(locations, fileobject)
+
+
 def list_sensors(csvpath):
 
     files = [f for f in os.listdir(csvpath) if f.endswith('.csv')]
@@ -127,8 +167,3 @@ def list_sensors(csvpath):
         sensors.append(sensor)
 
     return sensors
-
-
-def set_sensor_location(sensor):
-    with get_database_connection() as connection:
-        connection.execute("update sensors set location=:location where id=:id", sensor)

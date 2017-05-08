@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 import sys
-import tempfile
 
 import pytest
 
@@ -15,16 +14,18 @@ sys.path.insert(0, PACKAGEDIR)
 import tellsticklogger
 
 @pytest.fixture
-def csvpath():
-    return os.path.join(BASEDIR, 'fixtures')
+def csvpath(tmpdir):
+    dst = os.path.join(tmpdir.strpath, 'fixtures')
+    shutil.copytree(os.path.join(BASEDIR, 'fixtures'), dst)
+    return dst
 
 
-@pytest.fixture(scope='session', autouse=True)
-def tempdir():
-    tempdir = tempfile.TemporaryDirectory(dir='.')
-    tellsticklogger.core.DATABASE = shutil.copy(os.path.join(BASEDIR, 'tellsticklogger.db'), tempdir.name)
-    yield tempdir
-
+@pytest.fixture
+def empty_csvpath(csvpath):
+    p = os.path.join(csvpath, 'emptydir')
+    os.makedirs(p)
+    return p
+    
 
 @pytest.fixture
 def sensors(csvpath):
