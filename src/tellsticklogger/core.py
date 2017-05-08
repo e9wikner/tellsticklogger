@@ -121,7 +121,7 @@ def sensor_readings(sensor_id, valuetype, protocol, model, csvpath='.'):
             if len(row) != 2:
                 logger.error('Could not read ' + ', '.join(row))
             else:
-                timestamps.append(float(row[0]))
+                timestamps.append(int(row[0]))
                 values.append(float(row[1]))
 
     return timestamps, values
@@ -152,8 +152,13 @@ def get_sensor_location(sensor_id, csvpath='.'):
 
 
 def set_sensor_location(sensordict, csvpath='.'):
-    with open(sensor_locationfile(csvpath=csvpath), mode='r') as fileobject:
-        locations = json.load(fileobject)
+    locationfile = sensor_locationfile(csvpath=csvpath)
+    if not os.path.isfile(locationfile):
+        logger.debug('creating location file ' + locationfile)
+        locations = {}
+    else:
+        with open(sensor_locationfile(csvpath=csvpath), mode='r') as fileobject:
+            locations = json.load(fileobject)
 
     locations[sensordict['id']] = sensordict['location']
     with open(sensor_locationfile(csvpath=csvpath), mode='w') as fileobject:
@@ -179,7 +184,7 @@ def sensors(csvpath='.', include_all_readings=False):
 
         sensor['reading'] = {timestamps[-1]: values[-1]}
         if include_all_readings:
-            sensor['timestamp'], sensor['values'] = timestamps, values
+            sensor['timestamps'], sensor['values'] = timestamps, values
 
         try:
             sensor['location'] = get_sensor_location(sensor['id'], csvpath=csvpath)

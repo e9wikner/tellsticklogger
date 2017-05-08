@@ -14,7 +14,7 @@ def test_list_sensors(sensors):
 
 
 def test_sensors_readings(sensors):
-    assert 'timestamp' in sensors[0]
+    assert 'timestamps' in sensors[0]
     assert 'values' in sensors[0]
 
 
