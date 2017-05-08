@@ -75,7 +75,7 @@ def log_sensorevent(protocol, model, id_, datatype, value, timestamp, cid):
 @click.command()
 @click.option('--verbose', is_flag=True, help='Increase program verbosity')
 @click.option('--csvpath', help='Log to csv files here', default='.')
-def cli(csvpath, verbose):
+def cli_start_logger(csvpath, verbose):
     start_logger(csvpath, verbose)
 
 
@@ -142,6 +142,7 @@ def get_sensors_location(csvpath='.'):
     else:
         return locations
 
+
 def get_sensor_location(sensor_id, csvpath='.'):
     sensor_id = str(sensor_id)  # Just in case an int was given
     locations = get_sensors_location(csvpath=csvpath)
@@ -149,6 +150,12 @@ def get_sensor_location(sensor_id, csvpath='.'):
         raise LocationNotSetError('No location for sensor {} is set'.format(sensor_id))
 
     return locations[sensor_id]
+
+
+@click.command()
+@click.option('--csvpath', help='Log to csv files here', default='.')
+def cli_set_sensor_location(id, location, csvpath):
+    set_sensor_location({'id': id, 'location': location}, csvpath=csvpath)
 
 
 def set_sensor_location(sensordict, csvpath='.'):
@@ -189,7 +196,7 @@ def sensors(csvpath='.', include_all_readings=False):
         try:
             sensor['location'] = get_sensor_location(sensor['id'], csvpath=csvpath)
         except LocationNotSetError:
-            pass
+            sensor['location'] = 'unknown_' + str(sensor['id'])
         sensorss.append(sensor)
 
     return sensorss
