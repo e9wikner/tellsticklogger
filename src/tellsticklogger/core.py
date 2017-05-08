@@ -10,7 +10,7 @@ import click
 from tellcore.telldus import TelldusCore, AsyncioCallbackDispatcher
 from tellcore import constants
 
-__all__ = ['constants', 'list_sensors', 'sensor_readings', 'sensors_readings',
+__all__ = ['constants', 'sensors', 'sensor_readings',
            'get_sensor_location', 'get_sensors_location', 'set_sensor_location', 'LocationNotSetError']
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def csvfilename_to_dict(filename):
     try:
         return {'valuetype': datatype_str, 'protocol': protocol, 'model': model, 'id': int(id_)}
     except ValueError:
-        raise CouldNotParseFilename(filename)
+        raise CouldNotParseFilename(filename + '.csv')
 
 
 def log_sensorevent(protocol, model, id_, datatype, value, timestamp, cid):
@@ -107,7 +107,7 @@ def start_logger(csvpath='.', verbose=False):
         core.unregister_callback(callback_id)
 
 
-def sensor_readings(csvpath, sensor_id, valuetype, protocol, model):
+def sensor_readings(sensor_id, valuetype, protocol, model, csvpath='.'):
     """ Return timestamps, values """
 
     if isinstance(valuetype, str):
@@ -127,13 +127,13 @@ def sensor_readings(csvpath, sensor_id, valuetype, protocol, model):
     return timestamps, values
 
 
-def sensor_locationfile(csvpath):
+def sensor_locationfile(csvpath='.'):
     locationfile = os.path.join(csvpath, 'locations.json')
     logger.debug('locationfile: ' + locationfile)
     return locationfile
 
 
-def get_sensors_location(csvpath):
+def get_sensors_location(csvpath='.'):
     try:
         with open(sensor_locationfile(csvpath)) as fileobject:
             locations = json.load(fileobject)
@@ -142,51 +142,49 @@ def get_sensors_location(csvpath):
     else:
         return locations
 
-def get_sensor_location(sensor_id, csvpath):
+def get_sensor_location(sensor_id, csvpath='.'):
     sensor_id = str(sensor_id)  # Just in case an int was given
-    locations = get_sensors_location(csvpath)
+    locations = get_sensors_location(csvpath=csvpath)
     if sensor_id not in locations:
         raise LocationNotSetError('No location for sensor {} is set'.format(sensor_id))
 
     return locations[sensor_id]
 
 
-def set_sensor_location(sensordict, csvpath):
-    with open(sensor_locationfile(csvpath), mode='r') as fileobject:
+def set_sensor_location(sensordict, csvpath='.'):
+    with open(sensor_locationfile(csvpath=csvpath), mode='r') as fileobject:
         locations = json.load(fileobject)
 
     locations[sensordict['id']] = sensordict['location']
-    with open(sensor_locationfile(csvpath), mode='w') as fileobject:
+    with open(sensor_locationfile(csvpath=csvpath), mode='w') as fileobject:
         json.dump(locations, fileobject)
 
 
-def list_sensors(csvpath='.'):
+def sensors(csvpath='.', include_all_readings=False):
 
     files = [f for f in os.listdir(csvpath) if f.endswith('.csv')]
     logger.info('found files: {}'.format(', '.join(files)))
 
-    sensors = []
+    sensorss = []
     for sensorfile in files:
         try:
             sensor = csvfilename_to_dict(sensorfile)
         except CouldNotParseFilename as err:
-            logger.debug('not a sensorfile: ' + err)
+            logger.debug('not a sensorfile: ' + str(err))
             continue
-        timestamps, values = sensor_readings(csvpath, sensor['id'], sensor['valuetype'],
-                                      sensor['protocol'], sensor['model'])
+
+        timestamps, values = sensor_readings(
+                sensor['id'], sensor['valuetype'], sensor['protocol'], sensor['model'],
+                csvpath=csvpath)
+
         sensor['reading'] = {timestamps[-1]: values[-1]}
-        sensors.append(sensor)
+        if include_all_readings:
+            sensor['timestamp'], sensor['values'] = timestamps, values
 
-    return sensors
+        try:
+            sensor['location'] = get_sensor_location(sensor['id'], csvpath=csvpath)
+        except LocationNotSetError:
+            pass
+        sensorss.append(sensor)
 
-
-def sensors_readings(csvpath='.'):
-    sensors = list_sensors(csvpath=csvpath)
-    for sensor in sensors:
-        sensor_temp = sensor.copy()
-        sensor_temp['csvpath'] = csvpath
-        sensor_temp['sensor_id'] = sensor_temp['id']
-        sensor_temp.pop('id')
-        sensor_temp.pop('reading')
-        sensor['timestamp'], sensor['values'] = sensor_readings(**sensor_temp)
-    return sensors
+    return sensorss

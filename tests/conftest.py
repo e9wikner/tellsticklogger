@@ -29,4 +29,4 @@ def empty_csvpath(csvpath):
 
 @pytest.fixture
 def sensors(csvpath):
-    return tellsticklogger.list_sensors(csvpath=csvpath)
+    return tellsticklogger.sensors(csvpath=csvpath, include_all_readings=True)
