@@ -11,7 +11,6 @@ import tellcore.constants
 import tellsticklogger
 
 
-DB_CONNECTION = None
 Points = namedtuple('Points', ['x', 'y'])
 
 

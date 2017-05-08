@@ -5,6 +5,7 @@ from . import core
 
 
 app = flask.Flask(__name__, static_url_path='')
+app.config['CSVPATH'] = '.'
 
 
 def make_public_sensor(sensor):
@@ -15,14 +16,16 @@ def make_public_sensor(sensor):
         new_sensor[key] = sensor[key]
     return new_sensor
 
+
 @app.route('/tellsticklogger/api/v0.1/sensors', methods=['GET'])
 def get_sensors():
-    return flask.jsonify({'sensors': [make_public_sensor(s) for s in core.list_sensors()]})
+    return flask.jsonify({'sensors': [make_public_sensor(s)
+                          for s in core.sensors(app.config['CSVPATH'])]})
 
 
 @app.route('/tellsticklogger/api/v0.1/sensors/<int:sensor_id>', methods=['GET'])
 def get_sensor(sensor_id):
-    sensors = [s for s in core.list_sensors() if s['id'] == sensor_id]
+    sensors = [s for s in core.sensors(app.config['CSVPATH']) if s['id'] == sensor_id]
     if len(sensors) == 0:
         flask.abort(404)
 
@@ -31,7 +34,7 @@ def get_sensor(sensor_id):
 
 @app.route('/tellsticklogger/api/v0.1/sensors/<int:sensor_id>', methods=['PUT'])
 def put_sensor(sensor_id):
-    sensors = core.list_sensors()
+    sensors = core.sensors(app.config['CSVPATH'])
     if len(sensors) == 0:
         flask.abort(404)
 
@@ -44,5 +47,5 @@ def put_sensor(sensor_id):
 
     sensor['location'] = flask.request.json.get('sensor')['location']
     app.logger.debug('set sensor {id} location: {location}'.format(**sensor))
-    core.set_sensor_location(sensor)
+    core.set_sensor_location(sensor, csvpath=app.config['CSVPATH'])
     return flask.jsonify({'sensor': sensor})
