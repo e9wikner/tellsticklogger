@@ -55,7 +55,7 @@ def log_sensorevent(protocol, model, id_, datatype, value, timestamp, cid):
     filename = os.path.join(CSVPATH, csvfilename(id_, model, protocol, datatype))
     with open(filename, mode='a') as f:
         to_write = '{};{}'.format(timestamp, value)
-        f.writeline(to_write)
+        f.write(to_write + '\n')
         logger.debug('{} -> {}'.format(to_write, filename))
 
 
