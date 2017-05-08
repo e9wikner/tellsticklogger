@@ -10,7 +10,7 @@ import click
 from tellcore.telldus import TelldusCore, AsyncioCallbackDispatcher
 from tellcore import constants
 
-__all__ = ['constants', 'list_sensors', 'get_sensor_readings',
+__all__ = ['constants', 'list_sensors', 'sensor_readings', 'sensors_readings',
            'get_sensor_location', 'get_sensors_location', 'set_sensor_location', 'LocationNotSetError']
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,10 @@ constants.TELLSTICK_SENSOR_TYPE_VALUES = {
     'WINDGUST': 64}
 
 
+class CouldNotParseFilename(Exception):
+    pass
+
+
 class LocationNotSetError(Exception):
     pass
 
@@ -54,7 +58,10 @@ def csvfilename_to_dict(filename):
     ''' Convert the filename back to the configuration '''
     filename = filename.rstrip('.csv')
     datatype_str, protocol, model, id_ = filename.split('_')
-    return {'valuetype': datatype_str, 'protocol': protocol, 'model': model, 'id': int(id_)}
+    try:
+        return {'valuetype': datatype_str, 'protocol': protocol, 'model': model, 'id': int(id_)}
+    except ValueError:
+        raise CouldNotParseFilename(filename)
 
 
 def log_sensorevent(protocol, model, id_, datatype, value, timestamp, cid):
@@ -100,7 +107,7 @@ def start_logger(csvpath='.', verbose=False):
         core.unregister_callback(callback_id)
 
 
-def get_sensor_readings(csvpath, sensor_id, valuetype, protocol, model):
+def sensor_readings(csvpath, sensor_id, valuetype, protocol, model):
     """ Return timestamps, values """
 
     if isinstance(valuetype, str):
@@ -153,17 +160,33 @@ def set_sensor_location(sensordict, csvpath):
         json.dump(locations, fileobject)
 
 
-def list_sensors(csvpath):
+def list_sensors(csvpath='.'):
 
     files = [f for f in os.listdir(csvpath) if f.endswith('.csv')]
     logger.info('found files: {}'.format(', '.join(files)))
 
     sensors = []
     for sensorfile in files:
-        sensor = csvfilename_to_dict(sensorfile)
-        timestamps, values = get_sensor_readings(csvpath, sensor['id'], sensor['valuetype'],
+        try:
+            sensor = csvfilename_to_dict(sensorfile)
+        except CouldNotParseFilename as err:
+            logger.debug('not a sensorfile: ' + err)
+            continue
+        timestamps, values = sensor_readings(csvpath, sensor['id'], sensor['valuetype'],
                                       sensor['protocol'], sensor['model'])
         sensor['reading'] = {timestamps[-1]: values[-1]}
         sensors.append(sensor)
 
+    return sensors
+
+
+def sensors_readings(csvpath='.'):
+    sensors = list_sensors(csvpath=csvpath)
+    for sensor in sensors:
+        sensor_temp = sensor.copy()
+        sensor_temp['csvpath'] = csvpath
+        sensor_temp['sensor_id'] = sensor_temp['id']
+        sensor_temp.pop('id')
+        sensor_temp.pop('reading')
+        sensor['timestamp'], sensor['values'] = sensor_readings(**sensor_temp)
     return sensors

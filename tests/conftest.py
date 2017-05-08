@@ -25,8 +25,8 @@ def empty_csvpath(csvpath):
     p = os.path.join(csvpath, 'emptydir')
     os.makedirs(p)
     return p
-    
+
 
 @pytest.fixture
 def sensors(csvpath):
-    return tellsticklogger.list_sensors(csvpath)
+    return tellsticklogger.list_sensors(csvpath=csvpath)
