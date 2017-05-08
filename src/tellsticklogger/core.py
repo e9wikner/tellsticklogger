@@ -153,6 +153,8 @@ def get_sensor_location(sensor_id, csvpath='.'):
 
 
 @click.command()
+@click.argument('id')
+@click.argument('location')
 @click.option('--csvpath', help='Log to csv files here', default='.')
 def cli_set_sensor_location(id, location, csvpath):
     set_sensor_location({'id': id, 'location': location}, csvpath=csvpath)
