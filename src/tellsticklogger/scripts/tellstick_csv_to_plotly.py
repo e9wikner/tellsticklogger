@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+import logging
 from collections import defaultdict, namedtuple
 from datetime import datetime
 from statistics import mean
@@ -56,6 +57,7 @@ def daily_mean_points(datetimes, values):
 @click.option('--csvpath', default='.', help='Path where csv files are found')
 @click.option('--browse', is_flag=True, help='Open browser and show plots')
 def cli(csvpath, browse):
+    logger = logging.basigConfig(level=logging.INFO)
     csv_to_plotly(csvpath=csvpath, browse=browse)
 
 
@@ -63,7 +65,7 @@ def csv_to_plotly(csvpath='.', browse=False):
 
     sensors = tellsticklogger.sensors(csvpath=csvpath, include_all_readings=True)
     if len(sensors) == 0:
-        print ('no sensors found in ' + csvpath)
+        print('no sensors found in ' + csvpath)
         return
 
     sensor_location_to_humidity = {s['location']:
