@@ -115,15 +115,14 @@ def sensor_readings(sensor_id, valuetype, protocol, model, csvpath='.'):
 
     filename = csvfilename(sensor_id, model, protocol, valuetype)
     with open(os.path.join(csvpath, filename)) as csvfile:
-        csvreader = ( line.strip('\x00').split(';') for line in csvfile )
+        csvreader = (line.strip('\x00').split(';') for line in csvfile)
         timestamps, values = [], []
         for row in csvreader:
-            if len(row) != 2:
+            if not row or len(row) != 2:
                 logger.error('Could not read ' + ', '.join(row))
             else:
                 timestamps.append(int(row[0]))
                 values.append(float(row[1]))
-
 
     return timestamps, values
 
