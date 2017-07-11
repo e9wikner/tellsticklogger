@@ -57,7 +57,7 @@ def daily_mean_points(datetimes, values):
 @click.option('--csvpath', default='.', help='Path where csv files are found')
 @click.option('--browse', is_flag=True, help='Open browser and show plots')
 def cli(csvpath, browse):
-    logger = logging.basigConfig(level=logging.INFO)
+    logger = logging.basicConfig(level=logging.INFO)
     csv_to_plotly(csvpath=csvpath, browse=browse)
 
 
